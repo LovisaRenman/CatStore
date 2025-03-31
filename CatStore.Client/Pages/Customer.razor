@@ -1,0 +1,96 @@
+﻿@page "/customer"
+@using MudBlazor
+@using CatStore.Models
+@using System.Net.Http.Json
+@inject HttpClient httpClient
+
+
+
+<PageTitle>Customer</PageTitle>
+
+<MudTable T="CustomerDto" Items="@CustomerList" Hover="true" Breakpoint="Breakpoint.Sm" @bind-SelectedItem="selectedCustomer"
+          RowClass="cursor-pointer" OnRowClick="RowClickEvent">
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>First Name</MudTh>
+        <MudTh>Last Name</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh>Number</MudTh>
+        <MudTh>Adress</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Id">@context.Id</MudTd>
+        <MudTd DataLabel="FirstName">@context.FirstName</MudTd>
+        <MudTd DataLabel="LastName">@context.LastName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+        <MudTd DataLabel="Number">@context.MobilNumber</MudTd>
+        <MudTd DataLabel="Adress">@context.Adress</MudTd>
+    </RowTemplate>
+</MudTable>
+
+<MudButton Variant="Variant.Text">Add Customer</MudButton>
+<MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
+<MudTextField @bind-Value="firstName" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+<MudTextField @bind-Value="lastName" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+<MudTextField @bind-Value="email" Label="Email" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+<MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+<MudTextField @bind-Value="adress" Label="Adress" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+<MudButton Variant="Variant.Text">Save</MudButton>
+
+@code {
+    private int id;
+    private string? firstName;
+    private string? lastName;
+    private string? email;
+    private int? phoneNumber;
+    private string? adress;
+
+
+    private int newId;
+    private CustomerDto? selectedCustomer;
+    private int selectedRowNumber = -1;
+    private List<CustomerDto> CustomerList = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCustomers();
+        if (CustomerList.Count() > 1)
+        {
+            newId = CustomerList.Last().Id;
+        }
+        else
+        {
+            newId = 1;
+        }
+
+    }
+
+    
+
+    private async Task LoadCustomers()
+    {
+        try
+        {
+            CustomerList = await httpClient.GetFromJsonAsync<List<CustomerDto>>("api/customer");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading customers: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private void RowClickEvent(TableRowClickEventArgs<CustomerDto> tableRowClickEventArgs)
+    {
+        id = selectedCustomer.Id;
+        firstName = selectedCustomer.FirstName;
+        lastName = selectedCustomer.LastName;
+        email = selectedCustomer.Email;
+        phoneNumber = selectedCustomer.MobilNumber;
+        adress = selectedCustomer.Adress;
+    }
+
+}

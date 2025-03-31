@@ -1,0 +1,313 @@
+﻿@page "/products"
+@using MudBlazor
+@using CatStore.Models
+@using System.Net.Http.Json
+@inject HttpClient httpClient
+
+
+<PageTitle>Products</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Products</MudText>
+
+<MudTable Items="@ProductsList" T="ProductDto" SelectedItemsChanged="OnSelectedItemsChanged" MultiSelection="true" Hover="true" Breakpoint="Breakpoint.Sm" FixedHeader="@fixed_header">
+    <ToolBarContent>
+        <MudText Typo="Typo.h6">Products</MudText>
+        <MudSpacer />
+        <MudTextField @bind-Value="searchProductString"
+        Placeholder="Search"
+        Adornment="Adornment.Start"
+        AdornmentIcon="@Icons.Material.Filled.Search"
+        IconSize="Size.Medium"
+        Class="mt-0"
+        onkeydown="@HandleKeyDownProductSearch"></MudTextField>
+    </ToolBarContent>
+    <HeaderContent>
+        <MudTh>Id</MudTh>
+        <MudTh>Name</MudTh>
+        <MudTh>Description</MudTh>
+        <MudTh>Price</MudTh>
+        <MudTh>Category</MudTh>
+        <MudTh>Status</MudTh>
+    </HeaderContent>
+    <RowTemplate Context="product">
+        <MudTd DataLabel="Id">@product.Id</MudTd>
+        <MudTd DataLabel="Name">@product.Name</MudTd>
+        <MudTd DataLabel="Description">@product.Description</MudTd>
+        <MudTd DataLabel="Price">@product.Price</MudTd>
+        <MudTd DataLabel="Category">@GetCategoryName(product.CategoryId)</MudTd>
+        <MudTd DataLabel="Status">@(product.Status ? "In Stock" : "Out of Stock")</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+</MudTable>
+<MudButton Variant="Variant.Text" Disabled="btnCartIsDisabled" OnClick="AddCart">Add to Cart</MudButton>
+<MudButton Variant="Variant.Text" Disabled="btnUpdateIsDisabled" OnClick="Update">Update</MudButton>
+<MudButton Variant="Variant.Text" Disabled="btnDeleteIsDisabled" OnClick="Delete">Delete</MudButton>
+
+@if (_tableVisible)
+{
+    <MudTable T="ProductDto" Items="@CartList" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Price</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Id">@context.Id</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Price">@context.Price</MudTd>
+            <MudTd DataLabel="Category">@context.CategoryId</MudTd>
+            <MudTd DataLabel="Status">@(context.Status ? "In Stock" : "Out of Stock")</MudTd>
+        </RowTemplate>
+    </MudTable>
+    <MudStack Direction="Row" AlignItems="AlignItems.Start" Spacing="3">
+        <MudIconButton Icon="@Icons.Material.Filled.Search" 
+        Color="@Color.Primary" 
+        Style="padding: 0;" 
+        OnClick="SearchCustomers" />
+        <MudTextField @bind-Value="searchCustomerString" 
+        Placeholder="Search on your ID or email"
+        Class="mt-0" />
+    </MudStack>
+    <MudText>@customerResultString</MudText>
+    <MudButton Variant="Variant.Text" Disabled="btnBuyIsDisabled" OnClick="Buy">Buy</MudButton>
+}
+
+@code {
+    private bool _tableVisible = false;
+
+    int? foundCustomerId;
+    private string customerResultString = "No Customer";
+    private string searchCustomerString = "";
+    bool btnBuyIsDisabled = true;
+    bool btnCartIsDisabled = true;
+    bool btnUpdateIsDisabled = true;
+    bool btnDeleteIsDisabled = true;
+    private HashSet<ProductDto> selectedProducts = new HashSet<ProductDto>();
+
+    bool fixed_header = true;
+    private string searchProductString = "";
+    private List<ProductDto> ProductsList = new();
+    private List<ProductDto> CartList = new();
+    private List<CategoryDto> CategoryList = new();
+    private List<CustomerDto> CustomerList = new();
+
+
+    private void Buy()
+    {
+        var customer = CustomerList.FirstOrDefault(c => c.Id == foundCustomerId);
+        if (customer != null)
+        {
+            foreach (var item in CartList)
+            {
+                customer.Products.Add(item);
+            }
+            btnBuyIsDisabled = true;
+            CartList.Clear();
+            StateHasChanged();
+        }
+    }
+
+    async Task AddCart()
+    {
+        if (selectedProducts.Count() > 0)
+        {
+            _tableVisible = true;
+            foreach (var item in selectedProducts)
+            {
+                CartList.Add(item);
+            }
+            selectedProducts.Clear();
+        }
+    }
+
+    async Task Update()
+    {
+        if (selectedProducts.Count == 1)
+        {
+            var productToUpdate = selectedProducts.First();
+        }
+    }
+
+    async Task Delete()
+    {
+        if (selectedProducts.Count == 1)
+        {
+            var productToDelete = selectedProducts.First();
+            await httpClient.DeleteAsync($"api/product/{productToDelete.Id}");
+            await LoadProducts();
+            selectedProducts.Clear();
+            btnDeleteIsDisabled = true;
+            btnUpdateIsDisabled = true;
+            btnCartIsDisabled = true;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadProducts();
+        await LoadCategory();
+        await LoadCustomers();
+        _tableVisible = false;
+    }
+
+    private async Task LoadProducts()
+    {
+        try
+        {
+            ProductsList = await httpClient.GetFromJsonAsync<List<ProductDto>>("api/product");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+    private async Task LoadCustomers()
+    {
+        try
+        {
+            CustomerList = await httpClient.GetFromJsonAsync<List<CustomerDto>>("api/customer");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading products: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadCategory()
+    {
+        try
+        {
+            CategoryList = await httpClient.GetFromJsonAsync<List<CategoryDto>>("api/category");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading customers: {ex.Message}");
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private string GetCategoryName(int? categoryId)
+    {
+        var category = CategoryList.FirstOrDefault(c => c.Id == categoryId);
+        return category?.Name ?? "Unknown";
+    }
+
+    private void SearchCustomers()
+    {
+        if (searchCustomerString != string.Empty)
+        {
+            if (Int32.TryParse(searchCustomerString, out int id))
+            {
+                var customer = CustomerList.FirstOrDefault(c => c.Id == id);
+                if (customer != null)
+                {
+                    foundCustomerId = customer.Id;
+                    btnBuyIsDisabled = false;
+                    customerResultString = $"Found {customer.FirstName} {customer.LastName}";
+                }
+                else
+                {
+                    customerResultString = $"There is no customer by id: {id}";
+                    btnBuyIsDisabled = true;
+                }
+            }
+            else
+            {
+                var customers = CustomerList.Where(c => c.Email.ToLower().Contains(searchCustomerString.ToLower()));
+                if (customers == null)
+                {
+                    foundCustomerId = null;
+                    btnBuyIsDisabled = true;
+                    customerResultString = $"There is no customers found by this input {searchCustomerString}";
+                }
+                else if (customers.Count() == 1)
+                {
+                    foundCustomerId = customers.First().Id;
+                    btnBuyIsDisabled = false;
+                    customerResultString = $"Found {customers.First().FirstName} {customers.First().LastName}";
+                }
+                else if (customers.ToList().Count() > 1)
+                {
+                    foundCustomerId = null;
+                    btnBuyIsDisabled = true;
+                    customerResultString = $"There is multible customers found by this input {searchCustomerString}";
+                }
+            }
+
+        }
+        else customerResultString = "The searchfield is emty";
+        StateHasChanged();
+    }
+
+    private async Task HandleKeyDownProductSearch(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            ProductsList.Clear();
+            try
+            {
+                if (Int32.TryParse(searchProductString, out int id))
+                {
+                    var product = await httpClient.GetFromJsonAsync<ProductDto>("api/product/{id}");
+                    if (product != null) ProductsList.Add(product);
+                }
+                else
+                {
+                    ProductsList = await httpClient.GetFromJsonAsync<List<ProductDto>>("api/product/get/{searchString}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error performing search: {ex.Message}");
+            }
+            finally
+            {
+                StateHasChanged();
+            }
+            if (searchProductString == "")
+            {
+                await LoadProducts();
+            }
+        }
+    }
+    private void OnSelectedItemsChanged(HashSet<ProductDto> products)
+    {
+        selectedProducts = products;
+
+        if (products.Count == 0)
+        {
+            btnCartIsDisabled = true;
+            btnUpdateIsDisabled = true;
+            btnDeleteIsDisabled = true;
+        }
+        else if (products.Count == 1)
+        {
+            btnCartIsDisabled = false;
+            btnUpdateIsDisabled = false;
+            btnDeleteIsDisabled = false;
+        }
+        else
+        {
+            btnCartIsDisabled = false;
+            btnUpdateIsDisabled = true;
+            btnDeleteIsDisabled = true;
+        }
+    }
+}
