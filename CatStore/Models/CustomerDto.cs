@@ -4,6 +4,10 @@ namespace CatStore.Models;
 
 public class CustomerDto
 {
+    public CustomerDto()
+    {
+        Products = new List<ProductDto>();
+    }
     public CustomerDto(Customer customer)
     {
         Id = customer.Id;

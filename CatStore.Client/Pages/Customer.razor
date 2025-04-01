@@ -9,7 +9,7 @@
 <PageTitle>Customer</PageTitle>
 
 <MudTable T="CustomerDto" Items="@CustomerList" Hover="true" Breakpoint="Breakpoint.Sm" @bind-SelectedItem="selectedCustomer"
-          RowClass="cursor-pointer" OnRowClick="RowClickEvent">
+RowClass="cursor-pointer" OnRowClick="RowClickEvent">
     <HeaderContent>
         <MudTh>Id</MudTh>
         <MudTh>First Name</MudTh>
@@ -28,16 +28,67 @@
     </RowTemplate>
 </MudTable>
 
-<MudButton Variant="Variant.Text">Add Customer</MudButton>
-<MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
-<MudTextField @bind-Value="firstName" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-<MudTextField @bind-Value="lastName" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-<MudTextField @bind-Value="email" Label="Email" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-<MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-<MudTextField @bind-Value="adress" Label="Adress" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-<MudButton Variant="Variant.Text">Save</MudButton>
+<MudButton Variant="Variant.Text" OnClick="AddCustomer">Add Customer</MudButton>
+
+@if (@isUpdateVisible) 
+{
+    <MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
+    <MudTextField @bind-Value="firstName" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="lastName" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="email" Label="Email" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number"></MudTextField>
+    <MudTextField @bind-Value="adress" Label="Adress" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudButton Variant="Variant.Text" OnClick="SaveChanges">Save</MudButton>
+}
+@if (@isAddVisible)
+{
+    <MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
+    <MudTextField @bind-Value="firstName" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="lastName" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="email" Label="Email" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number"></MudTextField>
+    <MudTextField @bind-Value="adress" Label="Adress" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudButton Variant="Variant.Text" OnClick="Add">Add</MudButton>
+}
+
+<MudStack Row="true" AlignItems="AlignItems.Start" Spacing="3">
+    <MudIconButton Icon="@Icons.Material.Filled.Search" 
+    Color="@Color.Primary"
+    OnClick="SearchCustomers" />
+    <MudTextField @bind-Value="searchCustomerInt" 
+    Placeholder="Search on your ID to find your cart"
+    InputType="InputType.Number"
+    Class="mt-0" />
+</MudStack>
+
+@if (@isCustomerCartVisible)
+{
+    <MudTable T="ProductDto" Items="@CartList" Hover="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>Name</MudTh>
+            <MudTh>Description</MudTh>
+            <MudTh>Price</MudTh>
+            <MudTh>Category</MudTh>
+            <MudTh>Status</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Id">@context.Id</MudTd>
+            <MudTd DataLabel="Name">@context.Name</MudTd>
+            <MudTd DataLabel="Description">@context.Description</MudTd>
+            <MudTd DataLabel="Price">@context.Price</MudTd>
+            <MudTd DataLabel="Category">@context.CategoryId</MudTd>
+            <MudTd DataLabel="Status">@(context.Status ? "In Stock" : "Out of Stock")</MudTd>
+        </RowTemplate>
+    </MudTable>
+}
+
 
 @code {
+    private bool isCustomerCartVisible = false;
+    private int searchCustomerInt;
+    private bool isUpdateVisible = false;
+    private bool isAddVisible = false;
     private int id;
     private string? firstName;
     private string? lastName;
@@ -50,6 +101,8 @@
     private CustomerDto? selectedCustomer;
     private int selectedRowNumber = -1;
     private List<CustomerDto> CustomerList = new();
+    private List<ProductDto> CartList = new();
+
 
     protected override async Task OnInitializedAsync()
     {
@@ -62,10 +115,73 @@
         {
             newId = 1;
         }
-
     }
 
-    
+    private void SearchCustomers()
+    {
+        var customer = CustomerList.FirstOrDefault(c => c.Id == searchCustomerInt);
+
+        if (customer != null)
+        {
+            foreach (var item in customer.Products)
+            {
+                CartList.Add(item);
+            }
+
+            isCustomerCartVisible = true;       
+        }
+    }
+
+    private void AddCustomer()
+    {
+        isAddVisible = true;
+        id = newId + 1;
+        firstName = "";
+        lastName = "";
+        email = "";
+        phoneNumber = 0;
+        adress = "";
+        newId = newId + 1;
+    }
+
+    private async Task Add()
+    {
+        CustomerDto addCustomer = new CustomerDto()
+            {
+                Id = id, 
+                FirstName = firstName ?? "",
+                LastName = lastName ?? "",
+                Email = email ?? "",
+                MobilNumber = phoneNumber ?? null,
+                Adress = adress ?? ""
+            };
+        await httpClient.PostAsJsonAsync($"api/customer", addCustomer);
+        await LoadCustomers();
+        StateHasChanged();
+        isAddVisible = false;
+    }
+
+    private async Task SaveChanges()
+    {
+        var updateCustomer = new CustomerDto()
+            {
+                Id = id, 
+                FirstName = firstName ?? "",
+                LastName = lastName ?? "",
+                Email = email ?? "",
+                MobilNumber = phoneNumber ?? null,
+                Adress = adress ?? ""
+            };
+        var response = await httpClient.PutAsJsonAsync($"api/customer/{id}", updateCustomer);
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Failed to update customer: {response.StatusCode}");
+        }
+        await LoadCustomers();
+        StateHasChanged();
+        isUpdateVisible = false;
+    }
 
     private async Task LoadCustomers()
     {
@@ -85,6 +201,7 @@
 
     private void RowClickEvent(TableRowClickEventArgs<CustomerDto> tableRowClickEventArgs)
     {
+        isUpdateVisible = true;
         id = selectedCustomer.Id;
         firstName = selectedCustomer.FirstName;
         lastName = selectedCustomer.LastName;

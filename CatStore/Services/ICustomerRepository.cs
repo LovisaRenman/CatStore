@@ -8,6 +8,7 @@ namespace CatStore.Services
         Task<Customer?> GetCustomer(int id);
         IEnumerable<Customer?> GetCustomerByEmail(string email);
         void NewCustomer(Customer customer);
-        Customer? UpdateCustomer(Customer customer);       
+        Task<Customer?> UpdateCustomer(Customer customer);
+        Task AddProductToCustomer(int customerId, int productId);
     }
 }

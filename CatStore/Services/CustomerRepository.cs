@@ -32,17 +32,51 @@ namespace CatStore.Services
             _context.SaveChangesAsync();
         }
 
-        public Customer? UpdateCustomer(Customer customer)
+        public async Task<Customer?> UpdateCustomer(Customer customer)
         {
-            var oldcustomer = _context.Customers.FirstOrDefault(c => c.Id == customer.Id);
+            var oldcustomer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id);
+
             if (oldcustomer != null)
             {
-                _context.Customers.Update(oldcustomer);
-                oldcustomer = customer;
-                _context.SaveChangesAsync();
-                return customer;
+                oldcustomer.FirstName = customer.FirstName;
+                oldcustomer.LastName = customer.LastName;
+                oldcustomer.Email = customer.Email;
+                oldcustomer.MobilNumber = customer.MobilNumber;
+                oldcustomer.Adress = customer.Adress;
+
+                await _context.SaveChangesAsync();
+                return oldcustomer;
             }
-            else return customer;
+            else
+            {
+                return null;
+            }
+        }
+        public async Task AddProductToCustomer(int customerId, int productId)
+        {
+            var customer = await _context.Customers
+                .Include(c => c.Products)
+                .FirstOrDefaultAsync(c => c.Id == customerId);
+
+            var product = await _context.Products
+                .FirstOrDefaultAsync(p => p.Id == productId);
+
+            if (customer == null)
+            {
+                throw new ArgumentException("Customer not found.");
+            }
+
+            if (product == null)
+            {
+                throw new ArgumentException("Product not found.");
+            }
+
+            if (!customer.Products.Contains(product))
+            {
+                customer.Products.Add(product);
+                await _context.SaveChangesAsync();
+            }
         }
     }
 }
+

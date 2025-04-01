@@ -13,12 +13,15 @@ namespace CatStore.Services
         {
             _context = context ?? throw new ArgumentNullException(nameof(context));
         }
-        public Product? DeleteProduct(int id)
+        public async Task<Product?> DeleteProduct(int id)
         {
-            var product = _context.Products.FirstOrDefault(p => p.Id == id);
-            if (product == null) return product;
-            _context.Products.Remove(product);
-            _context.SaveChangesAsync();
+            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == id);
+            if (product == null) return null;
+
+            _context.Products.Attach(product);
+            _context.Products.Remove(product);  
+            await _context.SaveChangesAsync();  
+
             return product;
         }
 
@@ -37,20 +40,20 @@ namespace CatStore.Services
             return await _context.Products.FirstOrDefaultAsync(p => p.Id == productId);
         }
 
-        public void NewProduct(Product product)
+        public async Task NewProduct(Product product)
         {
             _context.Products.Add(product);
-            _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
-        public Product? UpdateProduct(Product product)
+        public async Task<Product?> UpdateProduct(Product product)
         {
             var oldproduct = _context.Products.FirstOrDefault(p => p.Id == product.Id);
             if (oldproduct != null)
             {
                 _context.Products.Update(oldproduct);
                 oldproduct = product;
-                _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
                 return product;
             }
             else return oldproduct;

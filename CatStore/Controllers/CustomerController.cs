@@ -51,8 +51,15 @@ public class CustomerController : ControllerBase
     public ActionResult UpdateCustomer(CustomerDto customer)
     {
         var customerUpdate = _customerRepository.UpdateCustomer(new Customer(customer));
+
         return customerUpdate == null 
             ? NotFound() 
             : NoContent();
+    }
+    [HttpPut("{customerId}/{productId}")]
+    public ActionResult CustomerAddProduct(int customerId, int productId)
+    {
+        _customerRepository.AddProductToCustomer(customerId, productId);
+        return NoContent();
     }
 }

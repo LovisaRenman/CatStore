@@ -40,25 +40,21 @@ public class ProductController : ControllerBase
     {
         var productEntity = await _productRepository.GetAllProductsByNameAsync(name);
 
-        var count = productEntity.Count();
-        if (count == 1) return Ok(new ProductDto(productEntity.First()));
-        else
+        var results = new List<ProductDto>();
+        foreach (var entity in productEntity)
         {
-            var results = new List<ProductDto>();
-            foreach (var entity in productEntity)
-            {
-                results.Add(new ProductDto(entity));
-            }
-            return Ok(results);
+            results.Add(new ProductDto(entity));
         }
+        return Ok(results);
+        
     }
     [HttpPost]
-    public ActionResult<ProductDto> CreateProduct(ProductDto product)
+    public async Task<ActionResult<ProductDto>> CreateProduct(ProductDto product)
     {
         var newProduct = new Product(product);
+        await _productRepository.NewProduct(newProduct);
 
-        _productRepository.NewProduct(newProduct);
-        return Ok(newProduct);
+        return CreatedAtAction(nameof(GetProduct), new { id = newProduct.Id }, new ProductDto(newProduct));
     }
     [HttpPut]
     public ActionResult UpdateProduct(ProductDto product)
@@ -69,11 +65,11 @@ public class ProductController : ControllerBase
             : NoContent();
     }
     [HttpDelete("{id}")]
-    public ActionResult DeleteProduct(int id)
+    public async Task<ActionResult> DeleteProduct(int id)
     {
-        var product = _productRepository.DeleteProduct(id);
-        return product == null 
+        var product = await _productRepository.DeleteProduct(id);
+        return product == null
             ? NotFound() 
-            : NoContent();
+            : NoContent();   
     }
 }

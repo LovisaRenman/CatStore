@@ -13,13 +13,12 @@
     <ToolBarContent>
         <MudText Typo="Typo.h6">Products</MudText>
         <MudSpacer />
+        <MudButton OnClick="@SearchProducts" Size="Size.Medium">Search</MudButton>
         <MudTextField @bind-Value="searchProductString"
         Placeholder="Search"
         Adornment="Adornment.Start"
-        AdornmentIcon="@Icons.Material.Filled.Search"
-        IconSize="Size.Medium"
-        Class="mt-0"
-        onkeydown="@HandleKeyDownProductSearch"></MudTextField>
+        Class="mt-0">
+        </MudTextField>
     </ToolBarContent>
     <HeaderContent>
         <MudTh>Id</MudTh>
@@ -42,6 +41,7 @@
     </PagerContent>
 </MudTable>
 <MudButton Variant="Variant.Text" Disabled="btnCartIsDisabled" OnClick="AddCart">Add to Cart</MudButton>
+<MudButton Variant="Variant.Text" OnClick="NewProduct">New Product</MudButton>
 <MudButton Variant="Variant.Text" Disabled="btnUpdateIsDisabled" OnClick="Update">Update</MudButton>
 <MudButton Variant="Variant.Text" Disabled="btnDeleteIsDisabled" OnClick="Delete">Delete</MudButton>
 
@@ -65,10 +65,9 @@
             <MudTd DataLabel="Status">@(context.Status ? "In Stock" : "Out of Stock")</MudTd>
         </RowTemplate>
     </MudTable>
-    <MudStack Direction="Row" AlignItems="AlignItems.Start" Spacing="3">
+    <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="3">
         <MudIconButton Icon="@Icons.Material.Filled.Search" 
-        Color="@Color.Primary" 
-        Style="padding: 0;" 
+        Color="@Color.Primary"
         OnClick="SearchCustomers" />
         <MudTextField @bind-Value="searchCustomerString" 
         Placeholder="Search on your ID or email"
@@ -78,8 +77,32 @@
     <MudButton Variant="Variant.Text" Disabled="btnBuyIsDisabled" OnClick="Buy">Buy</MudButton>
 }
 
+@if (isNewProductVisible)
+{
+    <MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
+    <MudTextField @bind-Value="name" Label="Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="description" Label="Description" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="price" Label="Price" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number"></MudTextField>
+    <MudSelect @bind-Value="_selectedCategory" Label="Select a Category" Variant="Variant.Outlined" ShrinkLabel>
+        @foreach (var category in CategoryList)
+        {
+            <MudSelectItem Value="@category.Id">@category.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudButton Variant="Variant.Text" OnClick="Add">Add</MudButton>
+}
+
 @code {
+    private int _selectedCategory;
+
+    private int id;
+    private string name;
+    private string description;
+    private int price;
+    private string status;
     private bool _tableVisible = false;
+    private bool isNewProductVisible = false;
+
 
     int? foundCustomerId;
     private string customerResultString = "No Customer";
@@ -91,6 +114,7 @@
     private HashSet<ProductDto> selectedProducts = new HashSet<ProductDto>();
 
     bool fixed_header = true;
+    private int newId;
     private string searchProductString = "";
     private List<ProductDto> ProductsList = new();
     private List<ProductDto> CartList = new();
@@ -98,19 +122,63 @@
     private List<CustomerDto> CustomerList = new();
 
 
-    private void Buy()
+    private void NewProduct()
     {
-        var customer = CustomerList.FirstOrDefault(c => c.Id == foundCustomerId);
-        if (customer != null)
+        isNewProductVisible = true;
+        _selectedCategory = CategoryList.First().Id;
+        if (ProductsList != null) newId = ProductsList.Last().Id;
+        else newId = 0;
+        id = newId + 1;
+
+    }
+
+    private async Task Add()
+    {
+        if (ProductsList != null) newId = ProductsList.Last().Id;
+        else newId = 0;
+        newId++;  
+        var newProduct = new ProductDto()
         {
-            foreach (var item in CartList)
+            Id = newId,
+            Name = name,
+            Description = description,
+            Price = price,
+            CategoryId = _selectedCategory,
+            Status = true 
+        };
+
+        Console.WriteLine(newProduct);
+
+        try
+        {
+            var result = await httpClient.PostAsJsonAsync("api/product", newProduct);
+            if (result.IsSuccessStatusCode)
             {
-                customer.Products.Add(item);
+                await LoadProducts();
+                StateHasChanged();
+                isNewProductVisible = false;
             }
-            btnBuyIsDisabled = true;
-            CartList.Clear();
-            StateHasChanged();
+            else
+            {
+                Console.WriteLine("Error adding product.");
+            }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error adding product: {ex.Message}");
+        }
+    }
+
+    private async Task Buy()
+    {
+        foreach (var item in CartList)
+        {
+            var result = await httpClient.PutAsync($"api/customer/{foundCustomerId}/{item.Id}", null);
+            if (!result.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Failed to add product {item.Id} to customer {foundCustomerId}. Status code: {result.StatusCode}");
+            }
+        } 
     }
 
     async Task AddCart()
@@ -256,21 +324,21 @@
         StateHasChanged();
     }
 
-    private async Task HandleKeyDownProductSearch(KeyboardEventArgs e)
+    private async Task SearchProducts()
     {
-        if (e.Key == "Enter")
+        if (searchProductString != string.Empty)
         {
             ProductsList.Clear();
             try
             {
                 if (Int32.TryParse(searchProductString, out int id))
                 {
-                    var product = await httpClient.GetFromJsonAsync<ProductDto>("api/product/{id}");
+                    var product = await httpClient.GetFromJsonAsync<ProductDto>($"api/product/{id}");
                     if (product != null) ProductsList.Add(product);
                 }
                 else
                 {
-                    ProductsList = await httpClient.GetFromJsonAsync<List<ProductDto>>("api/product/get/{searchString}");
+                    ProductsList = await httpClient.GetFromJsonAsync<List<ProductDto>>($"api/product/get/{searchProductString}");
                 }
             }
             catch (Exception ex)
@@ -285,6 +353,10 @@
             {
                 await LoadProducts();
             }
+        }
+        else 
+        {
+            LoadProducts();
         }
     }
     private void OnSelectedItemsChanged(HashSet<ProductDto> products)
