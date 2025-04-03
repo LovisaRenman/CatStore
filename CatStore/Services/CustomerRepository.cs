@@ -26,15 +26,16 @@ namespace CatStore.Services
             return _context.Customers.Where(c => c.Email == email);
         }
 
-        public void NewCustomer(Customer customer)
+        public async void NewCustomer(Customer customer)
         {
             _context.Customers.Add(customer);
-            _context.SaveChangesAsync();
+            await _context.SaveChangesAsync();
         }
 
         public async Task<Customer?> UpdateCustomer(Customer customer)
         {
-            var oldcustomer = await _context.Customers.FirstOrDefaultAsync(c => c.Id == customer.Id);
+            var oldcustomer = await _context.Customers
+                .FirstOrDefaultAsync(c => c.Id == customer.Id);
 
             if (oldcustomer != null)
             {
@@ -61,14 +62,9 @@ namespace CatStore.Services
             var product = await _context.Products
                 .FirstOrDefaultAsync(p => p.Id == productId);
 
-            if (customer == null)
+            if (customer == null || product == null)
             {
-                throw new ArgumentException("Customer not found.");
-            }
-
-            if (product == null)
-            {
-                throw new ArgumentException("Product not found.");
+                throw new ArgumentException("Customer or Product not found.");
             }
 
             if (!customer.Products.Contains(product))

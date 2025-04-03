@@ -1,7 +1,9 @@
-﻿using CatStore.Entities;
+﻿using CatStore.Components.Pages;
+using CatStore.Entities;
 using CatStore.Models;
 using CatStore.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using System.Threading.Tasks;
 
 namespace CatStore.Controllers;
@@ -45,8 +47,14 @@ public class ProductController : ControllerBase
         {
             results.Add(new ProductDto(entity));
         }
-        return Ok(results);
-        
+        return Ok(results);        
+    }
+    [HttpPut("allowDelete{id}")]
+    public async Task<ActionResult> AllowDelete(int id)
+    {
+        var product = await _productRepository.AllowDelete(id);
+        if (product != null && product.Customers.Count == 0) return NoContent();
+        return NotFound();
     }
     [HttpPost]
     public async Task<ActionResult<ProductDto>> CreateProduct(ProductDto product)
@@ -57,12 +65,12 @@ public class ProductController : ControllerBase
         return CreatedAtAction(nameof(GetProduct), new { id = newProduct.Id }, new ProductDto(newProduct));
     }
     [HttpPut]
-    public ActionResult UpdateProduct(ProductDto product)
+    public async Task<ActionResult> UpdateProduct(ProductDto product)
     {
-        var productUpdate = _productRepository.UpdateProduct(new Product(product));
+        var productUpdate = await _productRepository.UpdateProduct(new Product(product));
         return productUpdate == null 
             ? NotFound() 
-            : NoContent();
+            : Ok(productUpdate);
     }
     [HttpDelete("{id}")]
     public async Task<ActionResult> DeleteProduct(int id)

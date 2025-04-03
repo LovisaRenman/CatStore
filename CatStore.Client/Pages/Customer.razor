@@ -36,9 +36,10 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
     <MudTextField @bind-Value="firstName" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudTextField @bind-Value="lastName" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudTextField @bind-Value="email" Label="Email" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-    <MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number"></MudTextField>
+    <MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number" MaxLength="12"></MudTextField>
     <MudTextField @bind-Value="adress" Label="Adress" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudButton Variant="Variant.Text" OnClick="SaveChanges">Save</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="CancelUpdate">Cancel</MudButton>
 }
 @if (@isAddVisible)
 {
@@ -46,9 +47,10 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
     <MudTextField @bind-Value="firstName" Label="First Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudTextField @bind-Value="lastName" Label="Last Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudTextField @bind-Value="email" Label="Email" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-    <MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number"></MudTextField>
+    <MudTextField @bind-Value="phoneNumber" Label="PhoneNumber" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number" MaxLength="12"></MudTextField>
     <MudTextField @bind-Value="adress" Label="Adress" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudButton Variant="Variant.Text" OnClick="Add">Add</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="CancelAdd">Cancel</MudButton>
 }
 
 <MudStack Row="true" AlignItems="AlignItems.Start" Spacing="3">
@@ -96,25 +98,25 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
     private int? phoneNumber;
     private string? adress;
 
-
     private int newId;
     private CustomerDto? selectedCustomer;
     private int selectedRowNumber = -1;
     private List<CustomerDto> CustomerList = new();
     private List<ProductDto> CartList = new();
 
-
     protected override async Task OnInitializedAsync()
     {
         await LoadCustomers();
-        if (CustomerList.Count() > 1)
-        {
-            newId = CustomerList.Last().Id;
-        }
-        else
-        {
-            newId = 1;
-        }
+
+    }
+
+    private void CancelUpdate() => isUpdateVisible = false;
+    private void CancelAdd() => isAddVisible = false;
+
+    private int SetNewId()
+    {
+        var list = CustomerList.OrderBy(p => p.Id).ToList();
+        return list.Last().Id + 1;
     }
 
     private void SearchCustomers()
@@ -134,14 +136,18 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
 
     private void AddCustomer()
     {
+        if (CustomerList.Count() > 1)
+        {
+            newId = SetNewId();
+        }
+        isUpdateVisible = false;
         isAddVisible = true;
-        id = newId + 1;
+        id = newId;
         firstName = "";
         lastName = "";
         email = "";
         phoneNumber = 0;
         adress = "";
-        newId = newId + 1;
     }
 
     private async Task Add()
@@ -172,7 +178,7 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
                 MobilNumber = phoneNumber ?? null,
                 Adress = adress ?? ""
             };
-        var response = await httpClient.PutAsJsonAsync($"api/customer/{id}", updateCustomer);
+        var response = await httpClient.PutAsJsonAsync($"api/customer", updateCustomer);
         if (!response.IsSuccessStatusCode)
         {
             var errorContent = await response.Content.ReadAsStringAsync();
@@ -201,6 +207,7 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
 
     private void RowClickEvent(TableRowClickEventArgs<CustomerDto> tableRowClickEventArgs)
     {
+        isAddVisible = false;
         isUpdateVisible = true;
         id = selectedCustomer.Id;
         firstName = selectedCustomer.FirstName;
@@ -209,5 +216,4 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
         phoneNumber = selectedCustomer.MobilNumber;
         adress = selectedCustomer.Adress;
     }
-
 }

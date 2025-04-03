@@ -2,6 +2,7 @@
 using CatStore.Models;
 using CatStore.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq.Expressions;
 
 namespace CatStore.Controllers;
 
@@ -47,19 +48,26 @@ public class CustomerController : ControllerBase
         _customerRepository.NewCustomer(new Customer(customer));
         return Created();
     }
-    [HttpPut("{id}")]
-    public ActionResult UpdateCustomer(CustomerDto customer)
+    [HttpPut]
+    public async Task<ActionResult> UpdateCustomer(CustomerDto customer)
     {
-        var customerUpdate = _customerRepository.UpdateCustomer(new Customer(customer));
+        var customerUpdate = await _customerRepository.UpdateCustomer(new Customer(customer));
 
         return customerUpdate == null 
             ? NotFound() 
             : NoContent();
     }
     [HttpPut("{customerId}/{productId}")]
-    public ActionResult CustomerAddProduct(int customerId, int productId)
+    public async Task<ActionResult> CustomerAddProduct(int customerId, int productId)
     {
-        _customerRepository.AddProductToCustomer(customerId, productId);
-        return NoContent();
+        try
+        {
+            await _customerRepository.AddProductToCustomer(customerId, productId);     
+            return NoContent();          
+        }
+        catch (ArgumentException ex)
+        {
+            return NotFound(ex.Message);
+        }
     }
 }

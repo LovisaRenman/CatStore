@@ -10,5 +10,6 @@ namespace CatStore.Services
         Task<Product?> DeleteProduct(int id);
         Task<Product?> UpdateProduct(Product product);
         Task NewProduct(Product product);
+        Task<Product?> AllowDelete(int id);
     }
 }

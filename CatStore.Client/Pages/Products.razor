@@ -44,8 +44,9 @@
 <MudButton Variant="Variant.Text" OnClick="NewProduct">New Product</MudButton>
 <MudButton Variant="Variant.Text" Disabled="btnUpdateIsDisabled" OnClick="Update">Update</MudButton>
 <MudButton Variant="Variant.Text" Disabled="btnDeleteIsDisabled" OnClick="Delete">Delete</MudButton>
+<MudText>@DeleteResult</MudText>
 
-@if (_tableVisible)
+@if (isCartVisible)
 {
     <MudTable T="ProductDto" Items="@CartList" Hover="true" Breakpoint="Breakpoint.Sm">
         <HeaderContent>
@@ -82,7 +83,7 @@
     <MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
     <MudTextField @bind-Value="name" Label="Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
     <MudTextField @bind-Value="description" Label="Description" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
-    <MudTextField @bind-Value="price" Label="Price" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number"></MudTextField>
+    <MudTextField @bind-Value="price" Label="Price" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number" MaxLength="7"></MudTextField>
     <MudSelect @bind-Value="_selectedCategory" Label="Select a Category" Variant="Variant.Outlined" ShrinkLabel>
         @foreach (var category in CategoryList)
         {
@@ -90,6 +91,24 @@
         }
     </MudSelect>
     <MudButton Variant="Variant.Text" OnClick="Add">Add</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="CancelAdd">Cancel</MudButton>
+}
+
+@if (isUpdateVisible)
+{
+    <MudTextField @bind-Value="id" Label="Id" ReadOnly="true" Variant="Variant.Text" />
+    <MudTextField @bind-Value="name" Label="Name" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="description" Label="Description" Variant="Variant.Text" Margin="Margin.Dense"></MudTextField>
+    <MudTextField @bind-Value="price" Label="Price" Variant="Variant.Text" Margin="Margin.Dense" InputType="InputType.Number" MaxLength="7"></MudTextField>
+    <MudSelect @bind-Value="_selectedCategory" Label="Select a Category" Variant="Variant.Outlined" ShrinkLabel>
+        @foreach (var category in CategoryList)
+        {
+            <MudSelectItem Value="@category.Id">@category.Name</MudSelectItem>
+        }
+    </MudSelect>
+    <MudCheckBox @bind-Value="status" Label="Default">InStock</MudCheckBox>
+    <MudButton Variant="Variant.Text" OnClick="UpdateProduct">Update</MudButton>
+    <MudButton Variant="Variant.Text" OnClick="CancelUpdate">Cancel</MudButton>
 }
 
 @code {
@@ -99,10 +118,12 @@
     private string name;
     private string description;
     private int price;
-    private string status;
-    private bool _tableVisible = false;
+    private bool status;
+    private bool isCartVisible = false;
     private bool isNewProductVisible = false;
+    private bool isUpdateVisible = false;
 
+    private string DeleteResult;
 
     int? foundCustomerId;
     private string customerResultString = "No Customer";
@@ -121,22 +142,48 @@
     private List<CategoryDto> CategoryList = new();
     private List<CustomerDto> CustomerList = new();
 
+    private void CancelAdd() => isNewProductVisible = false;
+    private void CancelUpdate() => isUpdateVisible = false;
+
+    private int SetNewId()
+    {
+        var list = ProductsList.OrderBy(p => p.Id).ToList();
+        return list.Last().Id + 1;
+    }
+
+    private async Task UpdateProduct()
+    {
+        var updateProduct = new ProductDto()
+            {
+                Id = id,
+                Name = name,
+                Price = price,
+                CategoryId = _selectedCategory,
+                Description = description,
+                Status = status
+            };
+        var result = await httpClient.PutAsJsonAsync("api/product", updateProduct);
+        Console.WriteLine(result);
+        await LoadProducts();
+        isUpdateVisible = false;
+    }
 
     private void NewProduct()
     {
+        isUpdateVisible = false;
         isNewProductVisible = true;
         _selectedCategory = CategoryList.First().Id;
-        if (ProductsList != null) newId = ProductsList.Last().Id;
-        else newId = 0;
-        id = newId + 1;
+        name = "";
+        price = 0;
+        description = "";
 
+        if (ProductsList != null) newId = SetNewId();
     }
 
     private async Task Add()
     {
-        if (ProductsList != null) newId = ProductsList.Last().Id;
-        else newId = 0;
-        newId++;  
+        if (ProductsList != null) newId = SetNewId();
+
         var newProduct = new ProductDto()
         {
             Id = newId,
@@ -178,14 +225,15 @@
             {
                 Console.WriteLine($"Failed to add product {item.Id} to customer {foundCustomerId}. Status code: {result.StatusCode}");
             }
-        } 
+        }
+        isCartVisible = false;
     }
 
     async Task AddCart()
     {
         if (selectedProducts.Count() > 0)
         {
-            _tableVisible = true;
+            isCartVisible = true;
             foreach (var item in selectedProducts)
             {
                 CartList.Add(item);
@@ -196,10 +244,19 @@
 
     async Task Update()
     {
+        isNewProductVisible = false;
+        isUpdateVisible = true;
         if (selectedProducts.Count == 1)
         {
             var productToUpdate = selectedProducts.First();
+            id = productToUpdate.Id;
+            name = productToUpdate.Name;
+            _selectedCategory = productToUpdate.CategoryId ?? 0;
+            description = productToUpdate.Description;
+            price = productToUpdate.Price;
+            status = productToUpdate.Status;
         }
+
     }
 
     async Task Delete()
@@ -207,13 +264,27 @@
         if (selectedProducts.Count == 1)
         {
             var productToDelete = selectedProducts.First();
-            await httpClient.DeleteAsync($"api/product/{productToDelete.Id}");
-            await LoadProducts();
-            selectedProducts.Clear();
-            btnDeleteIsDisabled = true;
-            btnUpdateIsDisabled = true;
-            btnCartIsDisabled = true;
+
+            var result = await httpClient.PutAsync($"api/product/allowDelete{productToDelete.Id}", null);
+
+            if (result.IsSuccessStatusCode)
+            {
+                await httpClient.DeleteAsync($"api/product/{productToDelete.Id}");
+                await LoadProducts();
+                selectedProducts.Clear();
+                btnDeleteIsDisabled = true;
+                btnUpdateIsDisabled = true;
+                btnCartIsDisabled = true;
+            }
+            else await LimitedDisplay();
         }
+    }
+
+    async Task LimitedDisplay()
+    {
+        DeleteResult = "Unable to delete product: Product is in a cart";
+        await Task.Delay(50000);
+        DeleteResult = string.Empty;
     }
 
     protected override async Task OnInitializedAsync()
@@ -221,7 +292,7 @@
         await LoadProducts();
         await LoadCategory();
         await LoadCustomers();
-        _tableVisible = false;
+        isCartVisible = false;
     }
 
     private async Task LoadProducts()
