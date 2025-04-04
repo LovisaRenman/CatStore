@@ -1,0 +1,370 @@
+CatStore
+Version 1.0.0
+Syftet med apiet är att spara och hämta relevant information som behövs sparas för en butik som säljer saker katter behöver
+KontaktInformation: 
+lovisa.renman@iths.se
+Basic Auth
+
+/tasks
+Get Category
+Request
+Get /api/category
+Response
+200 Ok
+[
+  {
+    "id": 1,
+    "name": "Food"
+  },
+  {
+    "id": 2,
+    "name": "Toys"
+  },
+  {
+    "id": 0,
+    "name": "Unknown"
+  }
+]
+Response 
+404 Not found
+
+
+/tasks
+Get Category by id
+Request
+Get /api/category/{id}
+Response
+200 Ok
+[
+  {
+    "id": 1,
+    "name": "Food"
+  }
+]
+Response 
+404 Not found
+
+/task
+Get Customer
+Request
+Get /api/Customer
+Response 200 Ok
+[
+  {
+    "id": 1,
+    "firstName": "Lovisa",
+    "lastName": "Renman",
+    "email": "lovisa@renman.se",
+    "mobilNumber": 12343567,
+    "adress": "Göteborg",
+    "products": []
+  },
+  {
+    "id": 2,
+    "firstName": "Krystal",
+    "lastName": "Nguyen",
+    "email": "Krystal@hotmail.com",
+    "mobilNumber": 1234567890,
+    "adress": "Testar 2",
+    "products": []
+  },
+  {
+    "id": 3,
+    "firstName": "Sofia",
+    "lastName": "Renman",
+    "email": "Lololol@lol.se",
+    "mobilNumber": 436546,
+    "adress": "Stockholm",
+    "products": []
+  }
+]
+
+/task
+Get Customer by Id
+Request
+Get /api/Customer/{id}
+Response 200 Ok
+[
+  {
+    "id": 1,
+    "firstName": "Lovisa",
+    "lastName": "Renman",
+    "email": "lovisa@renman.se",
+    "mobilNumber": 12343567,
+    "adress": "Göteborg",
+    "products": []
+  }
+]
+Response 404 NotFound
+
+/task
+Get Customer by Email One or many depending if {email} match one or many
+Request
+Get /api/Customer/{email}
+Response 200 Ok
+[
+  {
+    "id": 1,
+    "firstName": "Lovisa",
+    "lastName": "Renman",
+    "email": "lovisa@renman.se",
+    "mobilNumber": 12343567,
+    "adress": "Göteborg",
+    "products": []
+  },
+  {
+    "id": 2,
+    "firstName": "Krystal",
+    "lastName": "Nguyen",
+    "email": "Krystal@hotmail.com",
+    "mobilNumber": 1234567890,
+    "adress": "Testar 2",
+    "products": []
+  },
+  {
+    "id": 3,
+    "firstName": "Sofia",
+    "lastName": "Renman",
+    "email": "Lololol@lol.se",
+    "mobilNumber": 436546,
+    "adress": "Stockholm",
+    "products": []
+  }
+]
+Response 404 NotFound
+
+/task 
+Post Customer
+Request
+Post /api/customer
+{
+  "id": 0,
+  "firstName": "string",
+  "lastName": "string",
+  "email": "string",
+  "mobilNumber": 0,
+  "adress": "string",
+  "products": [
+    {
+      "id": 0,
+      "name": "string",
+      "description": "string",
+      "price": 0,
+      "categoryId": 0,
+      "status": true,
+      "customers": [
+        "string"
+      ]
+    }
+  ]
+}
+Response
+201 Created
+Response 
+400 Error 
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "customer": [
+      "The customer field is required."
+    ],
+    "$.products[0].customers[0]": [
+      "The JSON value could not be converted to CatStore.Models.CustomerDto. Path: $.products[0].customers[0] | LineNumber: 16 | BytePositionInLine: 16."
+    ]
+  },
+  "traceId": "00-f8949b89985221580b97a90f5e9a170d-eb4be848d40b0fca-00"
+}
+
+/task 
+Put Customer
+Request
+Put /api/customer
+{
+  "id": 0,
+  "firstName": "string",
+  "lastName": "string",
+  "email": "string",
+  "mobilNumber": 0,
+  "adress": "string",
+  "products": [
+    {
+      "id": 0,
+      "name": "string",
+      "description": "string",
+      "price": 0,
+      "categoryId": 0,
+      "status": true,
+      "customers": [
+        "string"
+      ]
+    }
+  ]
+}
+Response
+204 NoContent
+
+/task 
+Put Customer order
+Request
+Put /api/customer/{customerId}/{productId}
+Response
+204 NoContent
+Response 400 Notfound
+
+/task
+Get Products 
+Request
+Get /api/product
+Response 200 Ok
+[
+  {
+    "id": 1,
+    "name": "Delicous Doops",
+    "description": "Kibble",
+    "price": 150,
+    "categoryId": 1,
+    "status": true,
+    "customers": []
+  },
+  {
+    "id": 2,
+    "name": "Test",
+    "description": "",
+    "price": 0,
+    "categoryId": 1,
+    "status": true,
+    "customers": []
+  }
+]
+
+/task
+Get Product by Id
+Request
+Get /api/product/{id}
+Response 200 Ok
+{
+  "id": 1,
+  "name": "Delicous Doops",
+  "description": "Kibble",
+  "price": 150,
+  "categoryId": 1,
+  "status": true,
+  "category": null,
+  "customers": []
+}
+Response 400 NotFound
+
+
+/task
+Get Product by Name
+Request 
+Get /api/product/get/{name}
+Response 200 Ok
+[
+  {
+    "id": 1,
+    "name": "Delicous Doops",
+    "description": "Kibble",
+    "price": 150,
+    "categoryId": 1,
+    "status": true,
+    "customers": []
+  }
+]
+
+/task
+Post Product
+Request 
+Post /api/product
+{
+  "id": 0,
+  "name": "string",
+  "description": "string",
+  "price": 0,
+  "categoryId": 0,
+  "status": true,
+  "customers": [
+    {
+      "id": 0,
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string",
+      "mobilNumber": 0,
+      "adress": "string",
+      "products": [
+        "string"
+      ]
+    }
+  ]
+}
+Response 200 Ok
+
+/task
+Put Product
+Request 
+Put /api/product
+{
+  "id": 0,
+  "name": "string",
+  "description": "string",
+  "price": 0,
+  "categoryId": 0,
+  "status": true,
+  "customers": [
+    {
+      "id": 0,
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string",
+      "mobilNumber": 0,
+      "adress": "string",
+      "products": [
+        "string"
+      ]
+    }
+  ]
+}
+Response 200 Ok
+{
+  "id": 0,
+  "name": "string",
+  "description": "string",
+  "price": 0,
+  "categoryId": 0,
+  "status": true,
+  "customers": [
+    {
+      "id": 0,
+      "firstName": "string",
+      "lastName": "string",
+      "email": "string",
+      "mobilNumber": 0,
+      "adress": "string",
+      "products": [
+        "string"
+      ]
+    }
+  ]
+}
+
+Response 400 NotFound
+
+/task
+Put Product
+Request 
+Put /api/product/allowDelete{id}
+Response 200 Ok
+Response 400 NotFound
+
+/task
+Delete Product
+Request
+Delete /api/product/{id}
+Response 200 Ok
+Response 400 NotFound
+
+
+
+
