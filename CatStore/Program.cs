@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using CatStore.Components;
 using CatStore.Services;
 using CatStore.Context;
+using Microsoft.AspNetCore.Builder;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,6 +42,8 @@ if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
     app.UseSwagger();
+    app.UseSwaggerUI();
+
 }
 else
 {
@@ -50,6 +53,7 @@ else
 }
 
 app.UseHttpsRedirection();
+app.MapControllers();
 
 app.UseRouting();
 
@@ -59,6 +63,8 @@ app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CatStore.Client._Imports).Assembly);
+
+
 
 app.UseEndpoints(endpoints =>
 {

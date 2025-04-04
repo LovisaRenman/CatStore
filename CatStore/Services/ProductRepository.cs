@@ -68,5 +68,15 @@ namespace CatStore.Services
             }
             else return null;
         }
+        public async Task<IEnumerable<Product>> GetProductsByCustomerAsync(int id)
+        {
+            var products = await _context.Products
+                                 .Where(p => p.Customers.Any(c => c.Id == id))
+                                 .ToListAsync();
+
+            return products;
+        }
+
+        
     }
 }

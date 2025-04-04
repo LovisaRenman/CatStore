@@ -73,6 +73,11 @@ namespace CatStore.Services
                 await _context.SaveChangesAsync();
             }
         }
+/*
+        public async Task<Customer?> GetCustomerWithProductsAsync(int id)
+        {
+            return await _context.Customers.Include(c => c.Products).FirstOrDefaultAsync(c => c.Id == id);
+        }*/
     }
 }
 

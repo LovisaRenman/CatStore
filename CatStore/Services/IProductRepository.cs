@@ -11,5 +11,6 @@ namespace CatStore.Services
         Task<Product?> UpdateProduct(Product product);
         Task NewProduct(Product product);
         Task<Product?> AllowDelete(int id);
+        Task<IEnumerable<Product>> GetProductsByCustomerAsync(int id);
     }
 }

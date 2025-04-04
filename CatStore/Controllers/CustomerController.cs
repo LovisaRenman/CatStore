@@ -49,7 +49,7 @@ public class CustomerController : ControllerBase
         return Created();
     }
     [HttpPut]
-    public async Task<ActionResult> UpdateCustomer(CustomerDto customer)
+    public async Task<ActionResult> UpdateCustomerAsync(CustomerDto customer)
     {
         var customerUpdate = await _customerRepository.UpdateCustomer(new Customer(customer));
 
@@ -58,7 +58,7 @@ public class CustomerController : ControllerBase
             : NoContent();
     }
     [HttpPut("{customerId}/{productId}")]
-    public async Task<ActionResult> CustomerAddProduct(int customerId, int productId)
+    public async Task<ActionResult> CustomerAddProductAsync(int customerId, int productId)
     {
         try
         {
@@ -70,4 +70,5 @@ public class CustomerController : ControllerBase
             return NotFound(ex.Message);
         }
     }
+
 }

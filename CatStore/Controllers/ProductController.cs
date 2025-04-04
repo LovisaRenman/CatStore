@@ -80,4 +80,16 @@ public class ProductController : ControllerBase
             ? NotFound() 
             : NoContent();   
     }
+    [HttpGet("getProductsByCustomer/{id}")]
+    public async Task<IEnumerable<ProductDto>> GetProductsByCustomerAsync(int id)
+    {
+        var result = await _productRepository.GetProductsByCustomerAsync(id);
+
+        List<ProductDto> products = new();
+        foreach (var item in result)
+        {
+            products.Add(new ProductDto(item));
+        }
+        return products;
+    }
 }

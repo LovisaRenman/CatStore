@@ -83,6 +83,8 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
             <MudTd DataLabel="Status">@(context.Status ? "In Stock" : "Out of Stock")</MudTd>
         </RowTemplate>
     </MudTable>
+    <MudButton Variant="Variant.Text" OnClick="Done">Done</MudButton>
+
 }
 
 
@@ -110,6 +112,7 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
 
     }
 
+    private void Done() => isCustomerCartVisible = false;
     private void CancelUpdate() => isUpdateVisible = false;
     private void CancelAdd() => isAddVisible = false;
 
@@ -119,19 +122,28 @@ RowClass="cursor-pointer" OnRowClick="RowClickEvent">
         return list.Last().Id + 1;
     }
 
-    private void SearchCustomers()
+    private async Task SearchCustomers()
     {
-        var customer = CustomerList.FirstOrDefault(c => c.Id == searchCustomerInt);
-
-        if (customer != null)
+        try
         {
-            foreach (var item in customer.Products)
+            var customer = await httpClient.GetFromJsonAsync<List<ProductDto>>($"api/product/getProductsByCustomer/{searchCustomerInt}");
+            CartList.Clear();
+            if (customer is not null)
             {
-                CartList.Add(item);
-            }
+                foreach (var item in customer)
+                {
+                    CartList.Add(item);
+                }
 
-            isCustomerCartVisible = true;       
+                isCustomerCartVisible = true;
+            }
         }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+        
     }
 
     private void AddCustomer()
